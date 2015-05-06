@@ -34,8 +34,8 @@ void* Input( void* _input ){
 int main( int argc, char* argv[] ){
 	if( argc < 3 ){
 		cout<<RED_COLOR<<BOLD_TEXT<<"NON ARGUMENT: HOST PORT [NICK] [USER]\n"<<DEFAULT_COLOR
-			<<"\tHOST - name or IP server\n"
-			<<"\tPORT - port server\n"
+			<<"\tHOST - server name\n"
+			<<"\tPORT - server port\n"
 			<<"\tNICK - your nick \t(default: "<<DEFAULT_NICK<<")\n"
 			<<"\tUSER - your user name \t(default: "<<DEFAULT_USER_NAME<<")\n";
 		return 1;

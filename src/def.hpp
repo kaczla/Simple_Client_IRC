@@ -14,6 +14,6 @@
 
 #define BOLD_TEXT "\033[1m"
 
-#define RED_ERROR "\033[91m[ERROR]\033[0m"
+#define RED_ERROR "\n\033[91m[ERROR]\033[0m"
 
 #endif
