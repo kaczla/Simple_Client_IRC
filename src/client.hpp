@@ -24,7 +24,11 @@ public:
 	Client( string _host, int _port, string _nick, string _user );
 	~Client();
 	bool ReturnInit();
-	bool Send();
+	bool Send( string &_input );
+	bool Reveice();
+	
+	void* Input( );	
+	static void* Input_Pthread( void* _input ); 
 private:
 	bool Init;
 	int Error;
@@ -37,6 +41,10 @@ private:
 	void SetHost( string &_host );
 	bool StartConnection();
 	void Disconnect();
+	//Send, Reveice
+	int ErrorSend, ErrorReveice;
+	char Buffer[MAX_RECV_BUFFER];
+	string ReveiceText;
 	//User info
 	string Nick, User;
 	void SetNick( string &_nick );

@@ -140,6 +140,7 @@ bool Client::StartConnection(){
 		cout<<"\r[6/6] Connected with "<<this->Host<<":"<<this->Port<<"\n";
 		this->Error = 0;
 		this->Connected = true;
+		
 		return true;
 	}
 	return false;
@@ -148,5 +149,34 @@ bool Client::StartConnection(){
 void Client::Disconnect(){
 	if( this->Connected ){
 		close( this->Socket );
+		this->Connected = false;
 	}
 }
+
+bool Client::Reveice(){
+	if( this->Connected ){
+		this->ErrorReveice = recv( this->Socket, Buffer, MAX_RECV_BUFFER-1, 0 );
+		if( this->ErrorReveice > 0 ){
+			this->ReveiceText = Buffer;
+			return true;
+		}
+		else{
+			return false;
+		}		
+	}
+	return false;
+}
+
+bool Client::Send( string &_input ){
+	if( this->Connected ){
+		this->ErrorSend = send( this->Socket, _input.c_str(), _input.size(), 0 );
+		if( this->ErrorSend < 0 ){
+			return false;
+		}
+		else{
+			return true;
+		}
+	}
+	return false;
+}
+

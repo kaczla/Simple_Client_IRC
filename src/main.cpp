@@ -25,6 +25,7 @@ void* Input( void* _input ){
 			}
 			else{
 				//send msg
+				
 			}
 		}
 	}while( true );
@@ -54,12 +55,12 @@ int main( int argc, char* argv[] ){
 	/*
 	int Error;
 	pthread_t PID;
-	Error = pthread_create( &PID, NULL, Input, NULL );
-	
+	this->Error = pthread_create( &PID, NULL, Client::Input_Pthread, NULL );		
 	if( Error ){
 		cout<<"pthread_create \'Input\' failed: "<<Error<<"\n";
-		return 2;
-	}*/
+		return false;
+	}
+	*/
 	
 	//connect
 	Client client( Host, Port, Nick, User );

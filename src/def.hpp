@@ -3,6 +3,7 @@
 
 #define DEFAULT_NICK "IRC_CLIENT"
 #define DEFAULT_USER_NAME "IRC_USER"
+#define MAX_RECV_BUFFER 2048
 
 #define DEFAULT_COLOR "\033[0m"
 #define RED_COLOR "\033[91m"
