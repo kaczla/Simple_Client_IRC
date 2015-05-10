@@ -76,7 +76,7 @@ int main( int argc, char* argv[] ){
 	if( ! client.ReturnInit() ){
 		return 2;
 	}
-	client.SetDebug( true );
+	//client.SetDebug( true );
 	
 	//Input thread
 	Error = pthread_create( &PID_Input, NULL, Input, NULL );		

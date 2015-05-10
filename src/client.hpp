@@ -8,6 +8,7 @@
 #include <cerrno>
 //cerrno: errno
 #include <cstdlib>
+#include <ctime>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -20,6 +21,8 @@
 using namespace std;
 
 #include "def.hpp"
+
+
 
 class Client{
 public:
@@ -58,10 +61,16 @@ private:
 	string Command;
 	vector <string> Param;
 	string Message;
+	void Action();
 	//User info
 	string Nick, User;
 	void SetNick( string &_nick );
 	void SetUser( string &_user );
+	//time
+	time_t Time;
+	struct tm * TimeInfo;
+	char TimeBuffer[16];
+	string ReturnTime();
 	//other
 	bool Debug;
 	size_t Find1, Find2;

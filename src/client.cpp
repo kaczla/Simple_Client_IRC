@@ -56,6 +56,7 @@ void Client::SetUser( string &_user ){
 }
 
 bool Client::StartConnection(){
+	this->Debug = false;
 	this->Connected = false;
 	if( this->Init ){
 		this->Socket = -1;
@@ -145,7 +146,7 @@ bool Client::StartConnection(){
 		if( this->Send( this->TMP ) ){
 			this->TMP = "USER " + this->User + " " + this->User + " * :Simple Client IRC";
 			if( this->Send( this->TMP ) ){
-				cout<<"Zalogowano się jako: "<<this->Nick<<"\n";
+				cout<<this->ReturnTime()<<"Logged.\n";
 			}
 			else{
 				cout<<RED_ERROR<<" Problem with connection!\n\n"
@@ -160,7 +161,7 @@ bool Client::StartConnection(){
 				<<DEFAULT_COLOR<<"\n";
 			return false;
 		}
-				
+		
 		this->Error = 0;
 		return true;
 	}
@@ -171,7 +172,7 @@ void Client::Disconnect(){
 	if( this->Connected ){
 		this->TMP = "QUIT :Leaving";
 		this->Send( this->TMP );
-		cout<<"Disconnected\n";
+		cout<<this->ReturnTime()<<"Disconnected\n";
 		close( this->Socket );
 		this->Connected = false;
 	}
@@ -224,7 +225,7 @@ void Client::SetDebug( bool _input ){
 
 void Client::StopClient(){
 	this->Disconnect();
-	cout<<RED_COLOR<<"STOP CLIENT"<<DEFAULT_COLOR<<"\n";
+	cout<<this->ReturnTime()<<RED_COLOR<<"STOP CLIENT"<<DEFAULT_COLOR<<"\n";
 }
 
 void Client::ReveiceData(){
@@ -264,7 +265,7 @@ void Client::Parse(){
 		this->Line.clear();
 	}
 	
-	//Param
+	//Param + Message
 	this->Param.clear();
 	if( this->Line.empty() ){
 		this->Message.clear();
@@ -283,9 +284,14 @@ void Client::Parse(){
 					break;
 				}
 			}
-			if( this->Param.empty() ){
-				this->Param.push_back( this->Line );
+			while( this->Line[0] == ' ' ){
+				this->Line.erase( 0, 1 );
 			}
+			if( ! this->Line.empty() ){
+				if( this->Param.empty() ){
+					this->Param.push_back( this->Line );
+				}
+			}			
 		}
 	}
 	this->Line.clear();
@@ -295,9 +301,67 @@ void Client::Parse(){
 		cout<<"Prefix: "<<CYAN_COLOR<<this->Prefix<<DEFAULT_COLOR;
 		cout<<"\nCommand: "<<CYAN_COLOR<<this->Command<<DEFAULT_COLOR;
 		cout<<"\nParam: ";
-		for( this->It = this->Param.begin(); this->It != this->Param.end(); ++this->It )		{
+		for( this->It = this->Param.begin(); this->It != this->Param.end(); ++this->It ){
 			cout<<CYAN_COLOR<<*this->It<<" "<<DEFAULT_COLOR;
 		}
 		cout<<"\nMessage: "<<CYAN_COLOR<<this->Message<<DEFAULT_COLOR<<"\n";
 	}
+	this->Action();
+}
+
+void Client::Action(){
+	if( this->Command.empty() ){
+		return;
+	}
+	else{
+		if( this->Command == "PRIBMSG" ){
+			
+		}
+		else if( this->Command == "NOTICE" ){
+			
+		}
+		else if( this->Command == "JOIN" ){
+			
+		}
+		else if( this->Command == "NICK" ){
+			
+		}		
+		else if( this->Command == "QUIT" ){
+			cout<<this->ReturnTime()<<GREEN_COLOR<<this->Prefix<<" quits ( "<<this->Message<<" )\n"<<DEFAULT_COLOR;
+		}
+		else if( this->Command == "353" ){
+			
+		}
+		else if( this->Command == "433" ){
+			cout<<this->ReturnTime()<<this->Param.at( 1 )<<": "<<RED_COLOR<<this->Message<<DEFAULT_COLOR<<"\n";
+		}	
+		else if( this->Command == "001" or this->Command == "002"	or this->Command ==	"003"	
+			or this->Command == "004"	or this->Command == "005"	or this->Command == "250"	
+			or this->Command == "251"	or this->Command == "252"	or this->Command == "253"	
+			or this->Command == "254"	or this->Command == "255"	or this->Command == "265"	
+			or this->Command == "266"	or this->Command == "366"	or this->Command == "372"	
+			or this->Command == "375"	or this->Command == "376"	or this->Command == "439" )
+		{
+			this->It = this->Param.begin();
+			++this->It;
+			cout<<this->ReturnTime()<<CYAN_COLOR;
+			for( ; this->It != this->Param.end(); ++It ){
+				cout<<*this->It<<" ";
+			}
+			cout<<this->Message<<DEFAULT_COLOR<<"\n";
+		}
+		else{
+			//Unknown command
+			if( this->Debug ){
+				cout<<RED_ERROR<<" Unknown command: "<<RED_COLOR<<this->Command<<DEFAULT_COLOR<<"\n";
+			}
+		}
+	}
+}
+
+string Client::ReturnTime(){
+	time( &this->Time );
+	TimeInfo = localtime( &this->Time );
+	strftime( this->TimeBuffer, 16, "[%T] ", this->TimeInfo );
+	return this->TimeBuffer ;
 }
