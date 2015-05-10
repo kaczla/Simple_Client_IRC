@@ -1,6 +1,9 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <sstream>
+#include <vector>
+#include <algorithm>
 //cstring: strerror
 #include <cerrno>
 //cerrno: errno
@@ -24,11 +27,11 @@ public:
 	Client( string _host, int _port, string _nick, string _user );
 	~Client();
 	bool ReturnInit();
+	bool ReturnConnected();
 	bool Send( string &_input );
-	bool Reveice();
-	
-	void* Input( );	
-	static void* Input_Pthread( void* _input ); 
+	void ReveiceData();
+	void StopClient();
+	void SetDebug( bool _input );
 private:
 	bool Init;
 	int Error;
@@ -45,8 +48,23 @@ private:
 	int ErrorSend, ErrorReveice;
 	char Buffer[MAX_RECV_BUFFER];
 	string ReveiceText;
+	istringstream Word;
+	string Line, CopyLine;
+	size_t Find;
+	bool Reveice();
+	void Parse();
+	//Message
+	string Prefix;
+	string Command;
+	vector <string> Param;
+	string Message;
 	//User info
 	string Nick, User;
 	void SetNick( string &_nick );
 	void SetUser( string &_user );
+	//other
+	bool Debug;
+	size_t Find1, Find2;
+	string TMP;
+	vector <string>::iterator It;
 };

@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-g
+CXXFLAGS=-std=c++11 -g
 LFLAGS=-pthread
 DIR=src
 SOURCE=client.cpp

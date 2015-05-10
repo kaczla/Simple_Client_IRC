@@ -128,7 +128,7 @@ bool Client::StartConnection(){
 		_server.sin_family = AF_INET;
 		_server.sin_port = htons( this->Port );
 		_server.sin_addr = *( ( const in_addr* ) _host->h_addr );
-		//memset( &_server.sin_zero, '\0', 8 );
+		memset( &_server.sin_zero, '\0', 8 );
 		this->Error = connect( this->Socket, (sockaddr*)&_server, sizeof(_server) );
 		if( this->Error < 0 ){
 			this->Init = false;
@@ -138,9 +138,30 @@ bool Client::StartConnection(){
 			return false;
 		}
 		cout<<"\r[6/6] Connected with "<<this->Host<<":"<<this->Port<<"\n";
-		this->Error = 0;
 		this->Connected = true;
 		
+		//LOG IN
+		this->TMP = "NICK " + this->Nick;
+		if( this->Send( this->TMP ) ){
+			this->TMP = "USER " + this->User + " " + this->User + " * :Simple Client IRC";
+			if( this->Send( this->TMP ) ){
+				cout<<"Zalogowano się jako: "<<this->Nick<<"\n";
+			}
+			else{
+				cout<<RED_ERROR<<" Problem with connection!\n\n"
+					<<RED_COLOR<<"### APPLICATION ABORTED ###"
+					<<DEFAULT_COLOR<<"\n";
+				return false;
+			}
+		}
+		else{
+			cout<<RED_ERROR<<" Problem with connection!\n\n"
+				<<RED_COLOR<<"### APPLICATION ABORTED ###"
+				<<DEFAULT_COLOR<<"\n";
+			return false;
+		}
+				
+		this->Error = 0;
 		return true;
 	}
 	return false;
@@ -148,6 +169,9 @@ bool Client::StartConnection(){
 
 void Client::Disconnect(){
 	if( this->Connected ){
+		this->TMP = "QUIT :Leaving";
+		this->Send( this->TMP );
+		cout<<"Disconnected\n";
 		close( this->Socket );
 		this->Connected = false;
 	}
@@ -155,9 +179,13 @@ void Client::Disconnect(){
 
 bool Client::Reveice(){
 	if( this->Connected ){
+		//memset( this->Buffer, 0, MAX_RECV_BUFFER );
 		this->ErrorReveice = recv( this->Socket, Buffer, MAX_RECV_BUFFER-1, 0 );
 		if( this->ErrorReveice > 0 ){
-			this->ReveiceText = Buffer;
+			this->ReveiceText = this->Buffer;
+			if( this->Debug ){
+				cout<<MAGENTA_COLOR<<">> "<<this->ReveiceText<<DEFAULT_COLOR<<"\n";
+			}
 			return true;
 		}
 		else{
@@ -169,14 +197,107 @@ bool Client::Reveice(){
 
 bool Client::Send( string &_input ){
 	if( this->Connected ){
+		if( _input.back() != '\n' ){
+			_input += '\n';
+		}
 		this->ErrorSend = send( this->Socket, _input.c_str(), _input.size(), 0 );
 		if( this->ErrorSend < 0 ){
 			return false;
 		}
 		else{
+			if( this->Debug ){
+				cout<<BLUE_COLOR<<"<< "<<_input<<DEFAULT_COLOR<<"\n";
+			}
 			return true;
 		}
 	}
 	return false;
 }
 
+bool Client::ReturnConnected(){
+	return this->Connected;
+}
+
+void Client::SetDebug( bool _input ){
+	this->Debug = _input;
+}
+
+void Client::StopClient(){
+	this->Disconnect();
+	cout<<RED_COLOR<<"STOP CLIENT"<<DEFAULT_COLOR<<"\n";
+}
+
+void Client::ReveiceData(){
+	if( this->Reveice() ){
+		this->Word.clear();
+		this->Word.str( this->ReveiceText );
+		while( getline( this->Word, this->Line ) ){
+			if( this->Line.find( '\r' ) != string::npos ){
+				this->Line.substr( 0, this->Line.size() -1 );
+			}
+			this->Parse();
+		}
+	}
+}
+
+void Client::Parse(){
+	this->CopyLine = this->Line;
+	//Prefix
+	if( this->Line[0] == ':' ){
+		this->Find = this->Line.find( ' ' );
+		this->Prefix = this->Line.substr( 1, this->Find - 1 ); 
+		this->Line = this->Line.substr( this->Find + 1 );
+	}
+	else{
+		this->Prefix.clear();
+	}
+	
+	//Command
+	this->Find = this->Line.find( ' ' );
+	this->Command = this->Line.substr( 0,  this->Find );
+	transform( this->Command.begin(), this->Command.end(), this->Command.begin(), towupper );	
+	this->Find = this->Line.find( ' ' );
+	if( this->Find != string::npos ){
+		this->Line = this->Line.substr( this->Find + 1 );
+	}
+	else{
+		this->Line.clear();
+	}
+	
+	//Param
+	this->Param.clear();
+	if( this->Line.empty() ){
+		this->Message.clear();
+	}
+	else{
+		if( this->Line[0] == ':' ){
+			this->Message = this->Line.substr( 1 );
+		}
+		else{
+			this->Find1 = 0;
+			while( ( this->Find2 = this->Line.find( ' ', this->Find1 ) ) != string::npos ){
+				this->Param.push_back( this->Line.substr( this->Find1, this->Find2 - this->Find1 ) );
+				this->Find1 = this->Find2 + 1;
+				if( this->Line[this->Find1] == ':' ){
+					this->Message = this->Line.substr( this->Find1 + 1 );
+					break;
+				}
+			}
+			if( this->Param.empty() ){
+				this->Param.push_back( this->Line );
+			}
+		}
+	}
+	this->Line.clear();
+	
+	if( this->Debug ){
+		cout<<GREEN_COLOR<<">> "<<this->CopyLine<<DEFAULT_COLOR<<"\n";
+		cout<<"Prefix: "<<CYAN_COLOR<<this->Prefix<<DEFAULT_COLOR;
+		cout<<"\nCommand: "<<CYAN_COLOR<<this->Command<<DEFAULT_COLOR;
+		cout<<"\nParam: ";
+		for( this->It = this->Param.begin(); this->It != this->Param.end(); ++this->It )		{
+			cout<<CYAN_COLOR<<*this->It<<" "<<DEFAULT_COLOR;
+		}
+		cout<<"\nMessage: "<<CYAN_COLOR<<this->Message<<DEFAULT_COLOR<<"\n";
+	}
+}
