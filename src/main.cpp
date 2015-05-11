@@ -148,7 +148,7 @@ void ParseInput( string &_input ){
 			InputMessage.Find = _input.find( ' ' );
 			InputMessage.Args.push_back( _input.substr( InputMessage.Find + 1 ) );
 			if( InputMessage.Args[0][0] == '#' ){
-				cout<<Pointer->ReturnTime_()<<BOLD_TEXT<<Nick<<DEFAULT_COLOR<<": "<<InputMessage.Args.at( 1 );
+				cout<<Pointer->ReturnTime_()<<BOLD_TEXT<<Nick<<DEFAULT_COLOR<<": "<<InputMessage.Args.at( 1 )<<"\n";
 			}
 			else{
 				cout<<Pointer->ReturnTime_()<<BOLD_TEXT<<Nick<<DEFAULT_COLOR<<"->"<<InputMessage.Args.at( 0 )<<": "<<InputMessage.Args.at( 1 )<<"\n";
