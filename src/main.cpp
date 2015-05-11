@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <vector>
+#include <algorithm>
 #include <pthread.h>
 #include "client.hpp"
 using namespace std;
@@ -12,34 +14,29 @@ using namespace std;
 
 Client * Pointer = NULL;
 bool running = true;
+string ToSend;
+string Nick;
+string Channel;
 
-void* Input( void* _input ){
-	string input;
-	do{
-		getline( cin, input );
-		if( input == "" ){
-			continue;
-		}
-		
-		if( input[0] == '/' or input[0] == '\\' ){
-			//do cmd
-		}
-		else{
-			//stop client
-			if( input == "quit" ){
-				if( Pointer != NULL ){
-					running = false;
-					Pointer->StopClient();
-				}								
-			}
-			else{
-				//send msg			
-			}
-		}
-	}while( running );
-	running = false;
-	pthread_exit( NULL );
-}
+struct InputMessage_{
+	string Command;
+	vector <string> Args;
+	int Argc;
+	int Find;
+	void Clear(){
+		this->Command.clear();
+		this->Args.clear();
+		this->Find = 0;
+		this->Argc = 0;
+	}
+	void Up(){
+		transform( this->Command.begin(), this->Command.end(), this->Command.begin(), towupper );
+	}
+} InputMessage;
+
+void ParseInput( string &_input );
+
+void* Input( void* _input );
 
 //Signal SIGPIPE
 void _Singal( int _signum ){
@@ -58,14 +55,16 @@ int main( int argc, char* argv[] ){
 	}
 	string Host = argv[1];
 	int Port = atoi( argv[2] );
-	string Nick( DEFAULT_NICK ), User( DEFAULT_USER_NAME );
+	Nick = DEFAULT_NICK;
+	string User( DEFAULT_USER_NAME );
 	if( argc >= 4 ){
 		Nick = argv[3];
 		User = Nick;
 	}
 	if( argc >= 5 ){
 		User = argv[4];
-	}	
+	}
+	bool Debug = false;
 	
 	int Error;
 	pthread_t PID_Input;
@@ -76,7 +75,7 @@ int main( int argc, char* argv[] ){
 	if( ! client.ReturnInit() ){
 		return 2;
 	}
-	//client.SetDebug( true );
+	client.SetDebug( Debug );
 	
 	//Input thread
 	Error = pthread_create( &PID_Input, NULL, Input, NULL );		
@@ -91,4 +90,116 @@ int main( int argc, char* argv[] ){
 	}
 	pthread_join( PID_Input, NULL );
 	return 0;
+}
+
+void* Input( void* _input ){
+	string input;
+	if( Pointer == NULL ){
+		cout<<"Problem with connect!\n";
+		running = false;
+		pthread_exit( NULL );
+	}
+	Channel.clear();
+	do{
+		getline( cin, input );
+		if( input == "" ){
+			continue;
+		}
+		
+		if( input[0] == '/' or input[0] == '\\' ){
+			//do cmd
+			ParseInput( input );
+		}
+		else{
+			//send msg
+			if( Channel.empty() ){
+				cout<<LINE_UP;
+				cout<<Pointer->ReturnTime_()<<RED_COLOR<<"Join to channel!\n"<<DEFAULT_COLOR;
+			}
+			else{
+				cout<<LINE_UP;
+				input = "MSG " + Channel + ' ' + input;
+				ParseInput( input );
+			}				
+		}
+	}while( running );
+	running = false;
+	pthread_exit( NULL );
+}
+
+void ParseInput( string &_input ){
+	if( _input[0] == '/' or _input[0] == '\\' ){
+		_input = _input.substr( 1 );
+	}
+	InputMessage.Clear();
+	InputMessage.Find = _input.find( ' ' );
+	InputMessage.Command = _input.substr( 0, InputMessage.Find );
+	InputMessage.Up();
+	InputMessage.Find = _input.find( ' ' );
+	_input = _input.substr( InputMessage.Find + 1 );
+	InputMessage.Argc = count( _input.begin(), _input.end(), ' ' ) + 1;
+	if( InputMessage.Command == "MSG" ){
+		if( InputMessage.Argc < 2 ){
+			cout<<RED_COLOR<<"Not enough arguments!\n"<<DEFAULT_COLOR;
+		}
+		else{
+			InputMessage.Find = _input.find( ' ' );
+			InputMessage.Args.push_back( _input.substr( 0, InputMessage.Find ) );
+			InputMessage.Find = _input.find( ' ' );
+			InputMessage.Args.push_back( _input.substr( InputMessage.Find + 1 ) );
+			if( InputMessage.Args[0][0] == '#' ){
+				cout<<Pointer->ReturnTime_()<<BOLD_TEXT<<Nick<<DEFAULT_COLOR<<": "<<InputMessage.Args.at( 1 );
+			}
+			else{
+				cout<<Pointer->ReturnTime_()<<BOLD_TEXT<<Nick<<DEFAULT_COLOR<<"->"<<InputMessage.Args.at( 0 )<<": "<<InputMessage.Args.at( 1 )<<"\n";
+			}			
+			ToSend = "PRIVMSG " + InputMessage.Args.at( 0 ) + " :"  + InputMessage.Args.at( 1 );
+			Pointer->Send( ToSend );
+		}
+	}
+	else if( InputMessage.Command == "JOIN" ){
+		if( InputMessage.Argc < 1 ){
+			cout<<RED_COLOR<<"Not enough arguments!\n"<<DEFAULT_COLOR;
+		}
+		else{
+			if( _input[0] != '#' ){
+				if( ! Channel.empty() ){
+					ToSend = "PART " + Channel + " :change channel";
+					Pointer->Send( ToSend );
+				}
+				
+				Channel = '#' + _input;
+				ToSend = "JOIN " + Channel;
+				Pointer->Send( ToSend );
+			}
+		}
+	}
+	else if( InputMessage.Command == "PART" ){
+		if( InputMessage.Argc < 1 ){
+			cout<<RED_COLOR<<"Not enough arguments!\n"<<DEFAULT_COLOR;
+		}
+		else{
+			InputMessage.Find = _input.find( ' ' );
+			InputMessage.Args.push_back( _input.substr( 0, InputMessage.Find ) );
+			ToSend = "PART ";
+			if( InputMessage.Args[0][0] != '#' ){
+				ToSend += '#';
+			}
+			ToSend += InputMessage.Args[0] + " :leaving";
+			Pointer->Send( ToSend );
+			if( Channel == InputMessage.Args[0] or Channel == '#' + InputMessage.Args[0] ){
+				Channel.clear();
+			}
+		}
+	}
+	else if( InputMessage.Command == "QUIT" ){
+		running = false;
+		if( Pointer != NULL ){
+			Pointer->StopClient();
+		}
+	}
+	else{
+		cout<<RED_COLOR<<"Unknown command: "<<InputMessage.Command<<"\n"<<DEFAULT_COLOR;
+		//cout<<"COMMAND="<<InputMessage.Command<<"\nARGC="<<InputMessage.Argc<<"\n";
+	}
 }

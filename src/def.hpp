@@ -17,5 +17,6 @@
 
 #define RED_ERROR "\n\033[91m[ERROR]\033[0m"
 
+#define LINE_UP "\033[1F"
 
 #endif

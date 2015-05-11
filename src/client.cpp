@@ -57,6 +57,7 @@ void Client::SetUser( string &_user ){
 
 bool Client::StartConnection(){
 	this->Debug = false;
+	this->Advance = false;
 	this->Connected = false;
 	if( this->Init ){
 		this->Socket = -1;
@@ -180,7 +181,7 @@ void Client::Disconnect(){
 
 bool Client::Reveice(){
 	if( this->Connected ){
-		//memset( this->Buffer, 0, MAX_RECV_BUFFER );
+		memset( this->Buffer, 0, MAX_RECV_BUFFER );
 		this->ErrorReveice = recv( this->Socket, Buffer, MAX_RECV_BUFFER-1, 0 );
 		if( this->ErrorReveice > 0 ){
 			this->ReveiceText = this->Buffer;
@@ -247,6 +248,7 @@ void Client::Parse(){
 	if( this->Line[0] == ':' ){
 		this->Find = this->Line.find( ' ' );
 		this->Prefix = this->Line.substr( 1, this->Find - 1 ); 
+		this->Find = this->Line.find( ' ' );
 		this->Line = this->Line.substr( this->Find + 1 );
 	}
 	else{
@@ -267,12 +269,14 @@ void Client::Parse(){
 	
 	//Param + Message
 	this->Param.clear();
-	if( this->Line.empty() ){
-		this->Message.clear();
-	}
-	else{
+	this->Message.clear();
+	if( ! this->Line.empty() ){
 		if( this->Line[0] == ':' ){
 			this->Message = this->Line.substr( 1 );
+			while( this->Message.back() == '\r' or this->Message.back() == ' ' ){
+				this->Message.pop_back();
+			}
+			this->Param.push_back( this->Message );
 		}
 		else{
 			this->Find1 = 0;
@@ -281,6 +285,10 @@ void Client::Parse(){
 				this->Find1 = this->Find2 + 1;
 				if( this->Line[this->Find1] == ':' ){
 					this->Message = this->Line.substr( this->Find1 + 1 );
+					while( this->Message.back() == '\r' or this->Message.back() == ' ' ){
+						this->Message.pop_back();
+					}
+					this->Param.push_back( this->Message );
 					break;
 				}
 			}
@@ -296,13 +304,15 @@ void Client::Parse(){
 	}
 	this->Line.clear();
 	
-	if( this->Debug ){
+	if( this->Advance ){
 		cout<<GREEN_COLOR<<">> "<<this->CopyLine<<DEFAULT_COLOR<<"\n";
 		cout<<"Prefix: "<<CYAN_COLOR<<this->Prefix<<DEFAULT_COLOR;
 		cout<<"\nCommand: "<<CYAN_COLOR<<this->Command<<DEFAULT_COLOR;
 		cout<<"\nParam: ";
-		for( this->It = this->Param.begin(); this->It != this->Param.end(); ++this->It ){
-			cout<<CYAN_COLOR<<*this->It<<" "<<DEFAULT_COLOR;
+		if( ! this->Param.empty() ){
+			for( this->It = this->Param.begin(); this->It != this->Param.end(); ++this->It ){
+				cout<<CYAN_COLOR<<*this->It<<" "<<DEFAULT_COLOR;
+			}
 		}
 		cout<<"\nMessage: "<<CYAN_COLOR<<this->Message<<DEFAULT_COLOR<<"\n";
 	}
@@ -314,23 +324,38 @@ void Client::Action(){
 		return;
 	}
 	else{
-		if( this->Command == "PRIBMSG" ){
+		if( this->Command == "PRIVMSG" ){
+			if( this->Param[0][0] == '#' ){
+				cout<<this->ReturnTime()<<this->Prefix<<"@"<<this->Param[0]<<": "<<this->Message<<"\n";
+			}
+			else{
+				cout<<this->ReturnTime()<<this->Prefix<<": "<<this->Message<<"\n";
+			}
+		}
+		else if( this->Command == "PING" ){
+			this->Ping = "PONG " + this->Param[0];
+			this->Send( this->Ping );
+		}
+		else if( this->Command == "PONG" ){
 			
 		}
 		else if( this->Command == "NOTICE" ){
-			
+			cout<<this->ReturnTime()<<CYAN_COLOR<<"-"<<this->Prefix<<"- "<<this->Message<<DEFAULT_COLOR<<"\n";
 		}
 		else if( this->Command == "JOIN" ){
-			
+			cout<<this->ReturnTime()<<GREEN_COLOR<<this->Prefix<<" join "<<this->Param.at( 0 )<<DEFAULT_COLOR<<"\n";
+		}
+		else if( this->Command == "PART" ){
+			cout<<this->ReturnTime()<<GREEN_COLOR<<this->Prefix<<" leave "<<this->Param.at( 0 )<<DEFAULT_COLOR<<"\n";
 		}
 		else if( this->Command == "NICK" ){
-			
+			cout<<this->ReturnTime()<<GREEN_COLOR<<this->Prefix<<" changed nick to "<<this->Param.at( 0 )<<DEFAULT_COLOR<<"\n";
 		}		
 		else if( this->Command == "QUIT" ){
 			cout<<this->ReturnTime()<<GREEN_COLOR<<this->Prefix<<" quits ( "<<this->Message<<" )\n"<<DEFAULT_COLOR;
 		}
 		else if( this->Command == "353" ){
-			
+			cout<<this->ReturnTime()<<CYAN_COLOR<<"People on "<<this->Param.at( 2 )<<": "<<DEFAULT_COLOR<<this->Param.at( 3 )<<"\n";
 		}
 		else if( this->Command == "433" ){
 			cout<<this->ReturnTime()<<this->Param.at( 1 )<<": "<<RED_COLOR<<this->Message<<DEFAULT_COLOR<<"\n";
@@ -342,13 +367,13 @@ void Client::Action(){
 			or this->Command == "266"	or this->Command == "366"	or this->Command == "372"	
 			or this->Command == "375"	or this->Command == "376"	or this->Command == "439" )
 		{
+			cout<<this->ReturnTime()<<CYAN_COLOR;
 			this->It = this->Param.begin();
 			++this->It;
-			cout<<this->ReturnTime()<<CYAN_COLOR;
 			for( ; this->It != this->Param.end(); ++It ){
 				cout<<*this->It<<" ";
 			}
-			cout<<this->Message<<DEFAULT_COLOR<<"\n";
+			cout<<DEFAULT_COLOR<<"\n";
 		}
 		else{
 			//Unknown command
@@ -364,4 +389,8 @@ string Client::ReturnTime(){
 	TimeInfo = localtime( &this->Time );
 	strftime( this->TimeBuffer, 16, "[%T] ", this->TimeInfo );
 	return this->TimeBuffer ;
+}
+
+string Client::ReturnTime_(){
+	return this->ReturnTime();
 }

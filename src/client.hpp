@@ -35,6 +35,7 @@ public:
 	void ReveiceData();
 	void StopClient();
 	void SetDebug( bool _input );
+	string ReturnTime_();
 private:
 	bool Init;
 	int Error;
@@ -72,8 +73,9 @@ private:
 	char TimeBuffer[16];
 	string ReturnTime();
 	//other
-	bool Debug;
+	bool Debug, Advance;
 	size_t Find1, Find2;
+	string Ping;
 	string TMP;
 	vector <string>::iterator It;
 };
